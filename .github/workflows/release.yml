@@ -19,6 +19,9 @@ jobs:
       attestations: write
       artifact-metadata: write
 
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+
     steps:
       - name: Check out source
         uses: actions/checkout@v7.0.1
@@ -32,7 +35,15 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          documents=(*/pomology.json)
+          if [[ "${RELEASE_TAG}" == *-test ]]; then
+            documents=(testing/pomology.json)
+          else
+            documents=()
+            for document in */pomology.json; do
+              [[ "${document%%/*}" == "testing" ]] && continue
+              documents+=("${document}")
+            done
+          fi
 
           if (( ${#documents[@]} == 0 )); then
             echo "::error::No solution Pomology documents found."
@@ -50,7 +61,15 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          documents=(*/pomology.json)
+          if [[ "${RELEASE_TAG}" == *-test ]]; then
+            documents=(testing/pomology.json)
+          else
+            documents=()
+            for document in */pomology.json; do
+              [[ "${document%%/*}" == "testing" ]] && continue
+              documents+=("${document}")
+            done
+          fi
 
           mkdir -p dist/release
           cp pomology.cue dist/release/
@@ -63,7 +82,7 @@ jobs:
 
           (
             cd dist/release
-            zip -r "../enterprise_solutions-${GITHUB_REF_NAME}.zip" .
+            zip -r "../enterprise_solutions-${RELEASE_TAG}.zip" .
           )
 
       - name: Generate build provenance attestation
@@ -74,7 +93,6 @@ jobs:
       - name: Prepare release attestation predicate
         shell: bash
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
           REPOSITORY: ${{ github.repository }}
           REPOSITORY_ID: ${{ github.repository_id }}
         run: |
@@ -102,10 +120,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          gh release create "${GITHUB_REF_NAME}" \
+          gh release create "${RELEASE_TAG}" \
             --draft \
             --verify-tag \
-            --title "Enterprise Solutions ${GITHUB_REF_NAME}" \
+            --title "Enterprise Solutions ${RELEASE_TAG}" \
             --generate-notes
 
       - name: Upload release assets
@@ -114,9 +132,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          shopt -s nullglob
 
-          gh release upload "${GITHUB_REF_NAME}" \
-            "dist/enterprise_solutions-${GITHUB_REF_NAME}.zip"
+          gh release upload "${RELEASE_TAG}" \
+            "dist/enterprise_solutions-${RELEASE_TAG}.zip"
 
           for document in dist/release/*/pomology.json; do
             solution="${document%/pomology.json}"
@@ -125,7 +144,7 @@ jobs:
             asset="dist/${solution}-pomology.json"
             cp "$document" "$asset"
 
-            gh release upload "${GITHUB_REF_NAME}" "$asset"
+            gh release upload "${RELEASE_TAG}" "$asset"
           done
 
       - name: Publish GitHub Release
@@ -135,4 +154,4 @@ jobs:
         run: |
           set -euo pipefail
 
-          gh release edit "${GITHUB_REF_NAME}" --draft=false
+          gh release edit "${RELEASE_TAG}" --draft=false

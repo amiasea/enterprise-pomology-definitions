@@ -1,0 +1,34 @@
+{
+  "varieties": [
+    "hermes",
+    "prometheus"
+  ],
+  "aspectOptions": [
+    "gamma",
+    "delta"
+  ],
+  "cordons": {
+    "enterprise": {
+      "tier": null,
+      "leaves": {
+        "host-api": {
+          "options": {
+            "hermes": "gamma",
+            "prometheus": "delta"
+          }
+        }
+      }
+    },
+    "endpoint": {
+      "tier": "enterprise",
+      "leaves": {
+        "core": {
+          "options": {
+            "hermes": "delta",
+            "prometheus": "gamma"
+          }
+        }
+      }
+    }
+  }
+}

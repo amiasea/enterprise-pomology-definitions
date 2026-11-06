@@ -1,4 +1,4 @@
-name: Release Enterprise Solutions
+name: Release Enterprise Solution
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Validate and release enterprise solutions
+    name: Validate and release enterprise solution
     runs-on: ubuntu-latest
 
     permissions:
@@ -29,56 +29,48 @@ jobs:
       - name: Set up CUE
         uses: cue-lang/setup-cue@v1.0.0
 
-      - name: Validate solution definitions
+      - name: Resolve solution definition
+        id: solution
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
 
-          if [[ "${RELEASE_TAG}" == *-test ]]; then
-            documents=(testing/pomology.json)
-          else
-            documents=()
-            for document in */pomology.json; do
-              [[ "${document%%/*}" == "testing" ]] && continue
-              documents+=("${document}")
-            done
-          fi
-
-          if (( ${#documents[@]} == 0 )); then
-            echo "::error::No solution Pomology documents found."
+          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z0-9]+)$ ]]; then
+            echo "::error::Release tag must follow the format v<major>.<minor>.<patch>-<solution-name>, with a non-hyphenated solution name."
             exit 1
           fi
 
-          for document in "${documents[@]}"; do
-            echo "Validating ${document}"
-            cue vet -c pomology.cue "${document}"
-          done
+          solution="${BASH_REMATCH[1]}"
+          document="${solution}/pomology.json"
 
-      - name: Package enterprise solutions
+          if [[ ! -f "${document}" ]]; then
+            echo "::error::Solution Pomology document not found: ${document}"
+            exit 1
+          fi
+
+          echo "name=${solution}" >> "${GITHUB_OUTPUT}"
+          echo "document=${document}" >> "${GITHUB_OUTPUT}"
+
+      - name: Validate solution definition
         shell: bash
+        env:
+          SOLUTION_DOCUMENT: ${{ steps.solution.outputs.document }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
 
-          if [[ "${RELEASE_TAG}" == *-test ]]; then
-            documents=(testing/pomology.json)
-          else
-            documents=()
-            for document in */pomology.json; do
-              [[ "${document%%/*}" == "testing" ]] && continue
-              documents+=("${document}")
-            done
-          fi
+          echo "Validating ${SOLUTION_DOCUMENT}"
+          cue vet -c pomology.cue "${SOLUTION_DOCUMENT}"
+
+      - name: Package enterprise solution
+        shell: bash
+        env:
+          SOLUTION_NAME: ${{ steps.solution.outputs.name }}
+        run: |
+          set -euo pipefail
 
           mkdir -p dist/release
           cp pomology.cue dist/release/
-
-          for document in "${documents[@]}"; do
-            solution="${document%%/*}"
-            echo "Packaging ${solution}"
-            cp -R "${solution}" dist/release/
-          done
+          cp -R "${SOLUTION_NAME}" dist/release/
 
           (
             cd dist/release
@@ -123,29 +115,23 @@ jobs:
           gh release create "${RELEASE_TAG}" \
             --draft \
             --verify-tag \
-            --title "Enterprise Solutions ${RELEASE_TAG}" \
+            --title "Enterprise Solution ${RELEASE_TAG}" \
             --generate-notes
 
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          SOLUTION_NAME: ${{ steps.solution.outputs.name }}
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
+
+          asset="dist/${SOLUTION_NAME}-pomology.json"
+          cp "dist/release/${SOLUTION_NAME}/pomology.json" "${asset}"
 
           gh release upload "${RELEASE_TAG}" \
-            "dist/enterprise_solutions-${RELEASE_TAG}.zip"
-
-          for document in dist/release/*/pomology.json; do
-            solution="${document%/pomology.json}"
-            solution="${solution##*/}"
-
-            asset="dist/${solution}-pomology.json"
-            cp "$document" "$asset"
-
-            gh release upload "${RELEASE_TAG}" "$asset"
-          done
+            "dist/enterprise_solutions-${RELEASE_TAG}.zip" \
+            "${asset}"
 
       - name: Publish GitHub Release
         env:

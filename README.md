@@ -1,6 +1,6 @@
-# Enterprise Solutions Definitions
+# Enterprise Solutions Flora
 
-This repository contains the declarative definitions of enterprise solutions supported by Amiasea.
+This repository contains the declarative flora of enterprise solutions supported by Amiasea.
 
 Each solution is an independently identifiable entry that may comprise multiple artifacts, including Pomology documents. Solution entries are maintained together in this repository and published as a versioned collection.
 
@@ -20,7 +20,7 @@ Each solution is an independently identifiable entry that may comprise multiple 
 
 - **`<solution>/`** — Contains the artifacts belonging to an individual solution. Each solution has its own directory, identified by its solution codename.
 - **`pomology.cue`** — Shared CUE schema for validating Pomology documents.
-- **`.github/workflows/release.yml`** — Validates the applicable documents and publishes the solution definitions when a version tag is pushed.
+- **`.github/workflows/release.yml`** — Validates the applicable documents and publishes the solution flora when a version tag is pushed.
 
 The repository may contain any number of solution entries. A Pomology is one type of solution artifact, not the definition of the entire solution or a requirement that every solution contain only a Pomology.
 
@@ -66,7 +66,7 @@ The release asset follows this naming convention:
 enterprise_solutions-<version>.zip
 ```
 
-The archive preserves the solution directory structure and groups each solution's artifacts under its corresponding directory. The release represents the collection of solution definitions at the tagged revision.
+The archive preserves the solution directory structure and groups each solution's artifacts under its corresponding directory. The release represents the collection of solution flora at the tagged revision.
 
 ## Provenance and Integrity
 

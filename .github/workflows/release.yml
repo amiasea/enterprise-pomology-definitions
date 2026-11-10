@@ -1,4 +1,4 @@
-name: Release Enterprise Solution
+name: Release Enterprise Pomology
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Validate and release enterprise solution
+    name: Validate and release enterprise pomology
     runs-on: ubuntu-latest
 
     permissions:
@@ -29,58 +29,58 @@ jobs:
       - name: Set up CUE
         uses: cue-lang/setup-cue@v1.0.0
 
-      - name: Resolve solution definition
-        id: solution
+      - name: Resolve pomology definition
+        id: pomology
         shell: bash
         run: |
           set -euo pipefail
 
           if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z0-9]+)$ ]]; then
-            echo "::error::Release tag must follow the format v<major>.<minor>.<patch>-<solution-name>, with a non-hyphenated solution name."
+            echo "::error::Release tag must follow the format v<major>.<minor>.<patch>-<pomology-name>, with a non-hyphenated pomology name."
             exit 1
           fi
 
-          solution="${BASH_REMATCH[1]}"
-          document="${solution}/pomology.json"
+          pomology="${BASH_REMATCH[1]}"
+          document="${pomology}/pomology.json"
 
           if [[ ! -f "${document}" ]]; then
             echo "::error::Solution Pomology document not found: ${document}"
             exit 1
           fi
 
-          echo "name=${solution}" >> "${GITHUB_OUTPUT}"
+          echo "name=${pomology}" >> "${GITHUB_OUTPUT}"
           echo "document=${document}" >> "${GITHUB_OUTPUT}"
 
-      - name: Validate solution definition
+      - name: Validate pomology definition
         shell: bash
         env:
-          SOLUTION_DOCUMENT: ${{ steps.solution.outputs.document }}
+          POMOLOGY_DOCUMENT: ${{ steps.pomology.outputs.document }}
         run: |
           set -euo pipefail
 
-          echo "Validating ${SOLUTION_DOCUMENT}"
-          cue vet -c pomology.cue "${SOLUTION_DOCUMENT}"
+          echo "Validating ${POMOLOGY_DOCUMENT}"
+          cue vet -c pomology.cue "${POMOLOGY_DOCUMENT}"
 
-      - name: Package enterprise solution
+      - name: Package enterprise pomology
         shell: bash
         env:
-          SOLUTION_NAME: ${{ steps.solution.outputs.name }}
+          POMOLOGY_NAME: ${{ steps.pomology.outputs.name }}
         run: |
           set -euo pipefail
 
           mkdir -p dist/release
           cp pomology.cue dist/release/
-          cp -R "${SOLUTION_NAME}" dist/release/
+          cp -R "${POMOLOGY_NAME}" dist/release/
 
           (
             cd dist/release
-            zip -r "../enterprise_solutions-${RELEASE_TAG}.zip" .
+            zip -r "../enterprise_pomology-${RELEASE_TAG}.zip" .
           )
 
       - name: Generate build provenance attestation
         uses: actions/attest@v4.2.2
         with:
-          subject-path: dist/enterprise_solutions-${{ github.ref_name }}.zip
+          subject-path: dist/enterprise_pomology-${{ github.ref_name }}.zip
 
       - name: Prepare release attestation predicate
         shell: bash
@@ -101,7 +101,7 @@ jobs:
       - name: Generate release attestation
         uses: actions/attest@v4.2.2
         with:
-          subject-path: dist/enterprise_solutions-${{ github.ref_name }}.zip
+          subject-path: dist/enterprise_pomology-${{ github.ref_name }}.zip
           predicate-type: https://in-toto.io/attestation/release/v0.2
           predicate-path: dist/release-predicate.json
 
@@ -115,22 +115,22 @@ jobs:
           gh release create "${RELEASE_TAG}" \
             --draft \
             --verify-tag \
-            --title "Enterprise Solution ${RELEASE_TAG}" \
+            --title "Enterprise Pomology ${RELEASE_TAG}" \
             --generate-notes
 
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
-          SOLUTION_NAME: ${{ steps.solution.outputs.name }}
+          POMOLOGY_NAME: ${{ steps.pomology.outputs.name }}
         shell: bash
         run: |
           set -euo pipefail
 
-          asset="dist/${SOLUTION_NAME}-pomology.json"
-          cp "dist/release/${SOLUTION_NAME}/pomology.json" "${asset}"
+          asset="dist/${POMOLOGY_NAME}-pomology.json"
+          cp "dist/release/${POMOLOGY_NAME}/pomology.json" "${asset}"
 
           gh release upload "${RELEASE_TAG}" \
-            "dist/enterprise_solutions-${RELEASE_TAG}.zip" \
+            "dist/enterprise_pomology-${RELEASE_TAG}.zip" \
             "${asset}"
 
       - name: Publish GitHub Release

@@ -29,7 +29,7 @@ jobs:
       - name: Set up CUE
         uses: cue-lang/setup-cue@v1.0.0
 
-      - name: Resolve pomology definition
+      - name: Resolve pomology flora
         id: pomology
         shell: bash
         run: |
@@ -51,7 +51,7 @@ jobs:
           echo "name=${pomology}" >> "${GITHUB_OUTPUT}"
           echo "document=${document}" >> "${GITHUB_OUTPUT}"
 
-      - name: Validate pomology definition
+      - name: Validate pomology flora
         shell: bash
         env:
           POMOLOGY_DOCUMENT: ${{ steps.pomology.outputs.document }}

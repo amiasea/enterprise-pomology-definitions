@@ -2,15 +2,15 @@
   "branches": {
     "enterprise": {
       "parent": null,
-      "leaves": {
-        "host-api": {}
-      }
+      "leaves": [
+        "host-api"
+      ]
     },
     "endpoint": {
       "parent": "enterprise",
-      "leaves": {
-        "core": {}
-      }
+      "leaves": [
+        "core"
+      ]
     }
   }
 }

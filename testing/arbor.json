@@ -1,0 +1,16 @@
+{
+  "branches": {
+    "enterprise": {
+      "parent": null,
+      "leaves": {
+        "host-api": {}
+      }
+    },
+    "endpoint": {
+      "parent": "enterprise",
+      "leaves": {
+        "core": {}
+      }
+    }
+  }
+}

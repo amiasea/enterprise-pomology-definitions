@@ -1,4 +1,4 @@
-name: Release Enterprise Pomology
+name: Release Enterprise Arbor
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Validate and release enterprise pomology
+    name: Validate and release enterprise arbor
     runs-on: ubuntu-latest
 
     permissions:
@@ -29,58 +29,52 @@ jobs:
       - name: Set up CUE
         uses: cue-lang/setup-cue@v1.0.0
 
-      - name: Resolve pomology flora
-        id: pomology
+      - name: Resolve arbor
+        id: arbor
         shell: bash
         run: |
           set -euo pipefail
 
           if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z0-9]+)$ ]]; then
-            echo "::error::Release tag must follow the format v<major>.<minor>.<patch>-<pomology-name>, with a non-hyphenated pomology name."
+            echo "::error::Release tag must follow the format v<major>.<minor>.<patch>-<arbor-name>, with a non-hyphenated arbor name."
             exit 1
           fi
 
-          pomology="${BASH_REMATCH[1]}"
-          document="${pomology}/pomology.json"
+          arbor="${BASH_REMATCH[1]}"
+          document="${arbor}/arbor.json"
 
           if [[ ! -f "${document}" ]]; then
-            echo "::error::Solution Pomology document not found: ${document}"
+            echo "::error::Arbor document not found: ${document}"
             exit 1
           fi
 
-          echo "name=${pomology}" >> "${GITHUB_OUTPUT}"
+          echo "name=${arbor}" >> "${GITHUB_OUTPUT}"
           echo "document=${document}" >> "${GITHUB_OUTPUT}"
 
-      - name: Validate pomology flora
+      - name: Validate arbor
         shell: bash
         env:
-          POMOLOGY_DOCUMENT: ${{ steps.pomology.outputs.document }}
+          ARBOR_DOCUMENT: ${{ steps.arbor.outputs.document }}
         run: |
           set -euo pipefail
 
-          echo "Validating ${POMOLOGY_DOCUMENT}"
-          cue vet -c pomology.cue "${POMOLOGY_DOCUMENT}"
+          echo "Validating ${ARBOR_DOCUMENT}"
+          cue vet -c arbor.cue "${ARBOR_DOCUMENT}"
 
-      - name: Package enterprise pomology
+      - name: Prepare release asset
         shell: bash
         env:
-          POMOLOGY_NAME: ${{ steps.pomology.outputs.name }}
+          ARBOR_NAME: ${{ steps.arbor.outputs.name }}
         run: |
           set -euo pipefail
 
-          mkdir -p dist/release
-          cp pomology.cue dist/release/
-          cp -R "${POMOLOGY_NAME}" dist/release/
-
-          (
-            cd dist/release
-            zip -r "../enterprise_pomology-${RELEASE_TAG}.zip" .
-          )
+          mkdir -p dist
+          cp "${ARBOR_NAME}/arbor.json" "dist/${ARBOR_NAME}-arbor.json"
 
       - name: Generate build provenance attestation
         uses: actions/attest@v4.2.2
         with:
-          subject-path: dist/enterprise_pomology-${{ github.ref_name }}.zip
+          subject-path: dist/${{ steps.arbor.outputs.name }}-arbor.json
 
       - name: Prepare release attestation predicate
         shell: bash
@@ -101,7 +95,7 @@ jobs:
       - name: Generate release attestation
         uses: actions/attest@v4.2.2
         with:
-          subject-path: dist/enterprise_pomology-${{ github.ref_name }}.zip
+          subject-path: dist/${{ steps.arbor.outputs.name }}-arbor.json
           predicate-type: https://in-toto.io/attestation/release/v0.2
           predicate-path: dist/release-predicate.json
 
@@ -115,23 +109,19 @@ jobs:
           gh release create "${RELEASE_TAG}" \
             --draft \
             --verify-tag \
-            --title "Enterprise Pomology ${RELEASE_TAG}" \
+            --title "Enterprise Arbor ${RELEASE_TAG}" \
             --generate-notes
 
-      - name: Upload release assets
+      - name: Upload release asset
         env:
           GH_TOKEN: ${{ github.token }}
-          POMOLOGY_NAME: ${{ steps.pomology.outputs.name }}
+          ARBOR_NAME: ${{ steps.arbor.outputs.name }}
         shell: bash
         run: |
           set -euo pipefail
 
-          asset="dist/${POMOLOGY_NAME}-pomology.json"
-          cp "dist/release/${POMOLOGY_NAME}/pomology.json" "${asset}"
-
           gh release upload "${RELEASE_TAG}" \
-            "dist/enterprise_pomology-${RELEASE_TAG}.zip" \
-            "${asset}"
+            "dist/${ARBOR_NAME}-arbor.json"
 
       - name: Publish GitHub Release
         env:
